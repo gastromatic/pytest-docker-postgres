@@ -1,6 +1,5 @@
 import os
 
-from pathlib import Path
 import glob
 import pytest
 from sqlalchemy import create_engine, text
@@ -20,7 +19,7 @@ def pytest_addoption(parser):
         "--load-database",
         action="store",
         default="",
-        help="Assume inside a docker network load a database from a sql folder",
+        help="Path to load a database from a folder containing sql files",
     )
 
 
@@ -84,11 +83,8 @@ def db_engine(in_docker_compose, docker_services):
 @pytest.fixture(scope="function")
 def schema_db_engine(db_engine, load_database):
     connection = db_engine.connect()
-    path = f"{Path.home()}/{load_database}/"
-    sql_files_path = glob.glob(path + "**/*.sql", recursive=True)
-    #files should be sorted according to numbers
-    sql_files_path.sort()
-    for file_path in sql_files_path:
+    sql_files = sorted(glob.glob(os.path.join(load_database, "**/*.sql"), recursive=True))
+    for file_path in sql_files:
         file = open(file_path)
         trans = connection.begin()
         connection.execute(text(file.read()))
