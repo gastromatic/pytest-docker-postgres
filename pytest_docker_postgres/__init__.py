@@ -1,7 +1,9 @@
 import os
 
+from pathlib import Path
+import glob
 import pytest
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.engine.url import URL
 from sqlalchemy_utils.functions import create_database, drop_database
 
@@ -14,11 +16,23 @@ def pytest_addoption(parser):
         default="",
         help="Assume inside a docker network",
     )
+    parser.addoption(
+        "--load-database",
+        action="store",
+        default="",
+        help="Assume inside a docker network load a database from a sql folder",
+    )
+
 
 
 @pytest.fixture(scope="session")
 def in_docker_compose(request):
     return request.config.getoption("--in-docker-compose")
+
+
+@pytest.fixture(scope="session")
+def load_database(request):
+    return request.config.getoption("--load-database")
 
 
 @pytest.fixture(scope="session")
@@ -65,3 +79,18 @@ def db_engine(in_docker_compose, docker_services):
     create_database(url)
     yield create_engine(url)
     drop_database(url)
+
+
+@pytest.fixture(scope="function")
+def schema_db_engine(db_engine, load_database):
+    connection = db_engine.connect()
+    path = f"{Path.home()}/{load_database}/"
+    sql_files_path = glob.glob(path + "**/*.sql", recursive=True)
+    #files should be sorted according to numbers
+    sql_files_path.sort()
+    for file_path in sql_files_path:
+        file = open(file_path)
+        trans = connection.begin()
+        connection.execute(text(file.read()))
+        trans.commit()
+    yield db_engine
