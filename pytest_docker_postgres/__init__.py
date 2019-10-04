@@ -86,7 +86,6 @@ def schema_db_engine(db_engine, load_database):
         sql_files = sorted(glob.glob(os.path.join(load_database, "**/*.sql"), recursive=True))
         for file_path in sql_files:
             with open(file_path) as file:
-                with conn.begin() as transaction:
+                with conn.begin():
                     conn.execute(text(file.read()))
-                    transaction.commit()
     yield db_engine
