@@ -82,11 +82,11 @@ def db_engine(in_docker_compose, docker_services):
 
 @pytest.fixture(scope="function")
 def schema_db_engine(db_engine, load_database):
-    connection = db_engine.connect()
-    sql_files = sorted(glob.glob(os.path.join(load_database, "**/*.sql"), recursive=True))
-    for file_path in sql_files:
-        file = open(file_path)
-        trans = connection.begin()
-        connection.execute(text(file.read()))
-        trans.commit()
+    with db_engine.connect() as conn:
+        sql_files = sorted(glob.glob(os.path.join(load_database, "**/*.sql"), recursive=True))
+        for file_path in sql_files:
+            with open(file_path) as file:
+                with conn.begin() as transaction:
+                    conn.execute(text(file.read()))
+                    transaction.commit()
     yield db_engine
