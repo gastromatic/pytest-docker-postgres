@@ -1,6 +1,6 @@
+import glob
 import os
 
-import glob
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.engine.url import URL
@@ -21,7 +21,6 @@ def pytest_addoption(parser):
         default="",
         help="Path to load a database from a folder containing sql files",
     )
-
 
 
 @pytest.fixture(scope="session")
@@ -84,7 +83,9 @@ def db_engine(in_docker_compose, docker_services):
 def schema_db_engine(db_engine, load_database):
     with db_engine.connect() as conn:
         with conn.begin():
-            sql_files = sorted(glob.glob(os.path.join(load_database, "**/*.sql"), recursive=True))
+            sql_files = sorted(
+                glob.glob(os.path.join(load_database, "**/*.sql"), recursive=True)
+            )
             for file_path in sql_files:
                 with open(file_path) as file:
                     conn.connection.cursor().execute(file.read())
