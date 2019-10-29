@@ -14,6 +14,16 @@ def db_with_schema(db_engine):
     return db_engine
 ```
 
+### Loading sql
+
+The `db_engine_load_sql` fixture can be parameterized using the `load-sql` command line option.
+The following would execute any tests depending on this fixture parameterized by
+2 different sets of SQL files, i.e. the tests will be executed once for each schema.
+
+```
+$ pytest --load-sql=schema1 --load-sql=schema2
+```
+
 ### Inside docker compose
 
 This package also supports starting postgres from `pytest` which itself is running inside
