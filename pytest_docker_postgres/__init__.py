@@ -16,9 +16,9 @@ def pytest_addoption(parser):
         help="Assume inside a docker network",
     )
     parser.addoption(
-        "--load-database",
-        action="store",
-        default="",
+        "--load-sql",
+        action="append",
+        default=[],
         help="Path to load a database from a folder containing sql files",
     )
 
@@ -26,11 +26,6 @@ def pytest_addoption(parser):
 @pytest.fixture(scope="session")
 def in_docker_compose(request):
     return request.config.getoption("--in-docker-compose")
-
-
-@pytest.fixture(scope="session")
-def load_database(request):
-    return request.config.getoption("--load-database")
 
 
 @pytest.fixture(scope="session")
@@ -80,13 +75,22 @@ def db_engine(in_docker_compose, docker_services):
 
 
 @pytest.fixture(scope="function")
-def schema_db_engine(db_engine, load_database):
+def db_engine_load_sql(db_engine, request):
     with db_engine.connect() as conn:
         with conn.begin():
             sql_files = sorted(
-                glob.glob(os.path.join(load_database, "**/*.sql"), recursive=True)
+                glob.glob(os.path.join(request.param, "**/*.sql"), recursive=True)
             )
             for file_path in sql_files:
                 with open(file_path) as file:
                     conn.connection.cursor().execute(file.read())
     yield db_engine
+
+
+def pytest_generate_tests(metafunc):
+    if db_engine_load_sql.__name__ in metafunc.fixturenames:
+        metafunc.parametrize(
+            db_engine_load_sql.__name__,
+            metafunc.config.getoption("--load-sql"),
+            indirect=True,
+        )
