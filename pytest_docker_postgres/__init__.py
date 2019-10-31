@@ -1,5 +1,6 @@
 import glob
 import os
+from typing import List
 
 import pytest
 from sqlalchemy import create_engine
@@ -74,13 +75,15 @@ def db_engine(in_docker_compose, docker_services):
     drop_database(url)
 
 
+def sql_from_folder_iter(path: str) -> List[str]:
+    return sorted(glob.glob(os.path.join(path, "**/*.sql"), recursive=True))
+
+
 @pytest.fixture(scope="function")
 def db_engine_load_sql(db_engine, request):
+    sql_files = request.param
     with db_engine.connect() as conn:
         with conn.begin():
-            sql_files = sorted(
-                glob.glob(os.path.join(request.param, "**/*.sql"), recursive=True)
-            )
             for file_path in sql_files:
                 with open(file_path) as file:
                     conn.connection.cursor().execute(file.read())
@@ -89,8 +92,12 @@ def db_engine_load_sql(db_engine, request):
 
 def pytest_generate_tests(metafunc):
     if db_engine_load_sql.__name__ in metafunc.fixturenames:
+        sql_folder_iters = [
+            sql_from_folder_iter(path)
+            for path in metafunc.config.getoption("--load-sql")
+        ]
         metafunc.parametrize(
             db_engine_load_sql.__name__,
-            metafunc.config.getoption("--load-sql"),
+            [i for i in sql_folder_iters if len(i) > 0],
             indirect=True,
         )
