@@ -76,7 +76,12 @@ def db_engine(in_docker_compose, docker_services):
 
 
 def sql_from_folder_iter(path: str) -> List[str]:
-    return sorted(glob.glob(os.path.join(path, "**/*.sql"), recursive=True))
+    if not os.path.isdir(path):
+        raise ValueError(f"Expected existing directory at {path}")
+    sql_files = sorted(glob.glob(os.path.join(path, "**/*.sql"), recursive=True))
+    if len(sql_files) == 0:
+        raise ValueError(f"Expected at least one sql file in {path}")
+    return sql_files
 
 
 @pytest.fixture(scope="function")
