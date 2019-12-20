@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pytest-docker-postgres",
-    version="0.0.4",
+    version="0.0.6",
     author="Gastromatic",
     author_email="mjboamail@gmail.com",
     description="Pytest fixtures for postgres in docker",
