@@ -1,6 +1,7 @@
 import glob
 import os
-from typing import List
+import filecmp
+from typing import List, Set
 
 import pytest
 from sqlalchemy import create_engine
@@ -21,6 +22,14 @@ def pytest_addoption(parser):
         action="append",
         default=[],
         help="Path to load a database from a folder containing sql files",
+    )
+    parser.addoption(
+        "--current-schema",
+        help="Path to initialize a schema for comparison with --next-schema",
+    )
+    parser.addoption(
+        "--next-schema",
+        help="Path to initialize a schema for comparison with --current-schema",
     )
 
 
@@ -95,12 +104,32 @@ def db_engine_load_sql(db_engine, request):
     yield db_engine
 
 
+def get_diff(a: str, b: str) -> Set[str]:
+    diffs = set()
+
+    def sub_cmp(c: filecmp.dircmp):
+        diffs.update(c.diff_files)
+        for sub_c in c.subdirs.values():
+            sub_cmp(sub_c)
+
+    sub_cmp(filecmp.dircmp(a, b))
+    diffs = {path for path in diffs if os.path.basename(path).endswith(".sql")}
+    return diffs
+
+
 def pytest_generate_tests(metafunc):
     if db_engine_load_sql.__name__ in metafunc.fixturenames:
-        sql_folder_iters = [
-            sql_from_folder_iter(path)
-            for path in metafunc.config.getoption("--load-sql")
-        ]
+        static_schema_paths = metafunc.config.getoption("--load-sql")
+        if static_schema_paths:
+            schema_paths = static_schema_paths
+        else:
+            current_schema = metafunc.config.getoption("--current-schema")
+            next_schema = metafunc.config.getoption("--next-schema")
+            schema_paths = [current_schema]
+            if next_schema:
+                if get_diff(current_schema, next_schema):
+                    schema_paths.append(next_schema)
+        sql_folder_iters = [sql_from_folder_iter(path) for path in schema_paths]
         metafunc.parametrize(
             db_engine_load_sql.__name__,
             [i for i in sql_folder_iters if len(i) > 0],
