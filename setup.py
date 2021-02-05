@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pytest-docker-postgres",
-    version="0.0.8",
+    version="0.0.9",
     author="Gastromatic",
     author_email="mjboamail@gmail.com",
     description="Pytest fixtures for postgres in docker",
@@ -18,7 +18,7 @@ setuptools.setup(
     # These may be too strict, feel free to make a PR and change them
     install_requires=[
         "pytest>=5.0",
-        "lovely-pytest-docker>=0.0.5",
+        "lovely-pytest-docker>=0.2.0",
         "sqlalchemy>=1.3.6",
         "sqlalchemy-utils>=0.34.1",
     ],
